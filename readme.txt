@@ -9,7 +9,6 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP: 7.2
 Text Domain: invalid-traffic-blocker
 
-== Short Description ==
 Protect your site from invalid traffic by blocking suspicious IPs using the IPHub.info API.
 
 == Description ==
