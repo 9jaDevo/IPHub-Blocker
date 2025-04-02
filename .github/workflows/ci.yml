@@ -1,0 +1,38 @@
+name: WordPress Plugin CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          extensions: mbstring, intl, dom
+
+      - name: Validate PHP Syntax
+        run: find . -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Install Dependencies
+        run: |
+          if [ -f composer.json ]; then
+            composer install --prefer-dist --no-progress --no-suggest
+          fi
+
+      - name: Run PHPUnit Tests
+        run: |
+          if [ -f phpunit.xml ] || [ -f phpunit.xml.dist ]; then
+            vendor/bin/phpunit --configuration phpunit.xml
+          else
+            echo "No PHPUnit configuration file found. Skipping tests."
+          fi
