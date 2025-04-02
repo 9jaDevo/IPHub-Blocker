@@ -248,12 +248,26 @@ class Invalid_Traffic_Blocker_Plugin
     <?php
     }
 
+    // Function to Fetch Users IP
+    private function itb_get_user_ip() {
+        if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+            $ips = explode(',', wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ));
+            return sanitize_text_field( trim( $ips[0] ) );
+        } elseif ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
+            return sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
+        } elseif ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
+            return sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
+        }
+        return '0.0.0.0';
+    }
+    
+    
     /**
      * Render the plugin settings page.
      */
     public function render_settings_page()
     {
-        $admin_ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+        $admin_ip = $this->itb_get_user_ip();
     ?>
         <div class="wrap">
             <h1>Invalid Traffic Blocker Settings</h1>
@@ -327,7 +341,7 @@ class Invalid_Traffic_Blocker_Plugin
             wp_die();
         }
         $api_key = $options['api_key'];
-        $test_ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '0.0.0.0';
+        $test_ip = $this->itb_get_user_ip();
 
         $response = wp_remote_get("http://v2.api.iphub.info/ip/" . $test_ip, array(
             'headers' => array('X-Key' => $api_key),
@@ -368,7 +382,7 @@ class Invalid_Traffic_Blocker_Plugin
         $api_key = $options['api_key'];
 
         // Get visitor IP address.
-        $visitor_ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+        $visitor_ip = $this->itb_get_user_ip();
 
         // Check if IP is whitelisted.
         if (! empty($options['whitelisted_ips'])) {
