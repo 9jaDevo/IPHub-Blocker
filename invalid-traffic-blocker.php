@@ -249,19 +249,22 @@ class Invalid_Traffic_Blocker_Plugin
     }
 
     // Function to Fetch Users IP
-    private function itb_get_user_ip() {
-        if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-            $ips = explode(',', wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ));
-            return sanitize_text_field( trim( $ips[0] ) );
-        } elseif ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-            return sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
-        } elseif ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
-            return sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
+    private function itb_get_user_ip()
+    {
+        if (! empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            // Get the header, unslash it, and sanitize the result.
+            $x_forwarded = sanitize_text_field(wp_unslash($_SERVER['HTTP_X_FORWARDED_FOR']));
+            $ips = explode(',', $x_forwarded);
+            return sanitize_text_field(trim($ips[0]));
+        } elseif (! empty($_SERVER['HTTP_CLIENT_IP'])) {
+            return sanitize_text_field(wp_unslash($_SERVER['HTTP_CLIENT_IP']));
+        } elseif (! empty($_SERVER['REMOTE_ADDR'])) {
+            return sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR']));
         }
         return '0.0.0.0';
     }
-    
-    
+
+
     /**
      * Render the plugin settings page.
      */
