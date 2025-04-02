@@ -212,7 +212,7 @@ class Invalid_Traffic_Blocker_Plugin
         <label>
             <input type="checkbox" name="<?php echo esc_attr($this->option_name); ?>[custom_mode]" value="1" <?php checked($custom, 1); ?> /> Custom Mode (Select specific block types below)
         </label>
-        <p><em>Please select only one mode.</em></p>
+        <p><em>Please select only one mode. Safe Mode is Recommended</em></p>
     <?php
     }
 
