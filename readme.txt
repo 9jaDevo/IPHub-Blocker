@@ -3,7 +3,7 @@ Contributors: michaelakinwumi
 Tags: invalid traffic, ip, iphub, blocker, ad protection, VPN, security
 Requires at least: 4.5
 Tested up to: 6.7.2
-Stable tag: 1.1
+Stable tag: 1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP: 7.2
@@ -33,6 +33,11 @@ If the API key is missing or incorrect, the plugin will not perform any blocking
 Yes, you can update the list of whitelisted IP addresses at any time from the settings page.
 
 == Changelog ==
+= 1.2 =
+* Updated API connectivity test to use the admin's current IP instead of the default 8.8.8.8.
+* Enhanced the API test response with styled info boxes: a green box for success and a red box for errors.
+* Added a "Whitelist My IP" button that automatically appends the admin’s current IP address to the whitelist.
+
 = 1.1 =
 * Added whitelist functionality for trusted IP addresses.
 * Improved error handling and caching for API requests.
