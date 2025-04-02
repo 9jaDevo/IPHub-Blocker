@@ -2,7 +2,7 @@
 
 /**
  * Plugin Name: Invalid Traffic Blocker
- * Plugin URI: https://github.com/9jaDevo/invalid-traffic-blocker
+ * Plugin URI: https://wordpress.org/plugins/invalid-traffic-blocker
  * Description: Blocks unwanted traffic using the IPHub.info API to protect AdSense publishers from invalid traffic.
  * Short Description: Protect your site from invalid traffic by blocking suspicious IPs using the IPHub.info API.
  * Version: 1.2
