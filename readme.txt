@@ -7,7 +7,7 @@ Stable tag: 1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP: 7.2
-Text Domain: IPHub-Blocker
+Text Domain: invalid-traffic-blocker
 
 == Short Description ==
 Protect your site from invalid traffic by blocking suspicious IPs using the IPHub.info API.

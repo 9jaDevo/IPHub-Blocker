@@ -2,7 +2,7 @@
 
 /**
  * Plugin Name: Invalid Traffic Blocker
- * Plugin URI: https://github.com/9jaDevo/IPHub-Blocker
+ * Plugin URI: https://github.com/9jaDevo/invalid-traffic-blocker
  * Description: Blocks unwanted traffic using the IPHub.info API to protect AdSense publishers from invalid traffic.
  * Short Description: Protect your site from invalid traffic by blocking suspicious IPs using the IPHub.info API.
  * Version: 1.2
@@ -10,7 +10,7 @@
  * Author URI: https://michaelakinwumi.com/
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: IPHub-Blocker
+ * Text Domain: invalid-traffic-blocker
  * Requires at least: 4.5
  * Requires PHP: 7.2
  */
