@@ -56,7 +56,7 @@ class Invalid_Traffic_Blocker_Plugin
      */
     public function register_settings()
     {
-        register_setting($this->option_group, $this->option_name, [__CLASS__, 'sanitize_settings']);
+        register_setting($this->option_group, $this->option_name, array('Invalid_Traffic_Blocker_Plugin', 'sanitize_settings'));
 
         add_settings_section(
             'itb_main_section',
@@ -128,7 +128,7 @@ class Invalid_Traffic_Blocker_Plugin
 
         // If custom mode is active, store an array of allowed block types (1 and/or 2).
         if (! empty($new_input['custom_mode'])) {
-            $custom = [];
+            $custom = array();
             if (isset($input['custom_block_options']) && is_array($input['custom_block_options'])) {
                 foreach ($input['custom_block_options'] as $block_option) {
                     $custom[] = absint($block_option);
@@ -136,7 +136,7 @@ class Invalid_Traffic_Blocker_Plugin
             }
             $new_input['custom_block_options'] = $custom;
         } else {
-            $new_input['custom_block_options'] = [];
+            $new_input['custom_block_options'] = array();
         }
 
         // Ensure only one blocking mode is active.
@@ -147,7 +147,7 @@ class Invalid_Traffic_Blocker_Plugin
             $new_input['safe_mode']   = 1;
             $new_input['strict_mode'] = 0;
             $new_input['custom_mode'] = 0;
-            $new_input['custom_block_options'] = [];
+            $new_input['custom_block_options'] = array();
         }
 
         // Sanitize the whitelisted IP addresses.
@@ -222,7 +222,7 @@ class Invalid_Traffic_Blocker_Plugin
     public function render_custom_block_options_field()
     {
         $options = get_option($this->option_name);
-        $custom_options = isset($options['custom_block_options']) ? (array)$options['custom_block_options'] : [];
+        $custom_options = isset($options['custom_block_options']) ? (array)$options['custom_block_options'] : array();
     ?>
         <label>
             <input type="checkbox" name="<?php echo esc_attr($this->option_name); ?>[custom_block_options][]" value="1" <?php checked(in_array(1, $custom_options)); ?> /> Block type 1 (Non‑residential)
@@ -251,7 +251,7 @@ class Invalid_Traffic_Blocker_Plugin
      */
     public function render_settings_page()
     {
-        $admin_ip = isset($_SERVER['REMOTE_ADDR']) ? wp_unslash($_SERVER['REMOTE_ADDR']) : '';
+        $admin_ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
     ?>
         <div class="wrap">
             <h1>Invalid Traffic Blocker Settings</h1>
@@ -325,12 +325,12 @@ class Invalid_Traffic_Blocker_Plugin
             wp_die();
         }
         $api_key = $options['api_key'];
-        $test_ip = isset($_SERVER['REMOTE_ADDR']) ? wp_unslash($_SERVER['REMOTE_ADDR']) : '0.0.0.0';
+        $test_ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '0.0.0.0';
 
-        $response = wp_remote_get("http://v2.api.iphub.info/ip/" . $test_ip, [
-            'headers' => ['X-Key' => $api_key],
+        $response = wp_remote_get("http://v2.api.iphub.info/ip/" . $test_ip, array(
+            'headers' => array('X-Key' => $api_key),
             'timeout' => 5,
-        ]);
+        ));
 
         if (is_wp_error($response)) {
             echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">Error: API Connection Error: ' . esc_html($response->get_error_message()) . '</div>';
@@ -366,7 +366,7 @@ class Invalid_Traffic_Blocker_Plugin
         $api_key = $options['api_key'];
 
         // Get visitor IP address.
-        $visitor_ip = isset($_SERVER['REMOTE_ADDR']) ? wp_unslash($_SERVER['REMOTE_ADDR']) : '';
+        $visitor_ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
 
         // Check if IP is whitelisted.
         if (! empty($options['whitelisted_ips'])) {
@@ -381,10 +381,10 @@ class Invalid_Traffic_Blocker_Plugin
         $ip_data = get_transient($transient_key);
 
         if (false === $ip_data) {
-            $response = wp_remote_get("http://v2.api.iphub.info/ip/" . $visitor_ip, [
-                'headers' => ['X-Key' => $api_key],
+            $response = wp_remote_get("http://v2.api.iphub.info/ip/" . $visitor_ip, array(
+                'headers' => array('X-Key' => $api_key),
                 'timeout' => 5,
-            ]);
+            ));
 
             if (is_wp_error($response)) {
                 // If API connection fails, consider allowing access.
@@ -413,12 +413,12 @@ class Invalid_Traffic_Blocker_Plugin
             }
         } elseif (! empty($options['strict_mode'])) {
             // Strict Mode: block if block == 1 or 2.
-            if (isset($ip_data['block']) && in_array((int)$ip_data['block'], [1, 2])) {
+            if (isset($ip_data['block']) && in_array((int)$ip_data['block'], array(1, 2))) {
                 $block_ip = true;
             }
         } elseif (! empty($options['custom_mode'])) {
             // Custom Mode: block if IP's block value is in admin-selected options.
-            $custom_options = isset($options['custom_block_options']) ? (array)$options['custom_block_options'] : [];
+            $custom_options = isset($options['custom_block_options']) ? (array)$options['custom_block_options'] : array();
             if (isset($ip_data['block']) && in_array((int)$ip_data['block'], $custom_options)) {
                 $block_ip = true;
             }
@@ -431,7 +431,7 @@ class Invalid_Traffic_Blocker_Plugin
                 <p>Your access has been restricted because your IP address has been flagged as suspicious (e.g., use of VPN or invalid traffic).</p>
                 <p>Please disable your VPN or contact your network administrator if you believe this is an error.</p>',
                 'Access Restricted',
-                ['response' => 403]
+                array('response' => 403)
             );
         }
     }
