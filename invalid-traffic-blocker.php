@@ -57,7 +57,8 @@ class Invalid_Traffic_Blocker_Plugin
      */
     public function register_settings()
     {
-        register_setting($this->option_group, $this->option_name, array('Invalid_Traffic_Blocker_Plugin', 'sanitize_settings'));
+        // Use a literal callback instead of a dynamic array.
+        register_setting($this->option_group, $this->option_name, 'invalid_traffic_blocker_sanitize_settings');
 
         add_settings_section(
             'itb_main_section',
@@ -435,6 +436,14 @@ class Invalid_Traffic_Blocker_Plugin
                 array('response' => 403)
             );
         }
+    }
+}
+
+// Global function for sanitization.
+if (! function_exists('invalid_traffic_blocker_sanitize_settings')) {
+    function invalid_traffic_blocker_sanitize_settings($input)
+    {
+        return Invalid_Traffic_Blocker_Plugin::sanitize_settings($input);
     }
 }
 
