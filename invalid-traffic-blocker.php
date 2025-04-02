@@ -4,7 +4,7 @@
  * Plugin Name: Invalid Traffic Blocker
  * Plugin URI: https://github.com/9jaDevo/IPHub-Blocker
  * Description: Blocks unwanted traffic using the IPHub.info API to protect AdSense publishers from invalid traffic.
- * Version: 1.1
+ * Version: 1.2
  * Author: Michael Akinwumi
  * Author URI: https://michaelakinwumi.com/
  * License: GPLv2 or later
@@ -265,12 +265,14 @@ class Invalid_Traffic_Blocker_Plugin
                 <a href="https://iphub.info/register" target="_blank" class="button button-secondary">Register for IPHub.info</a>
             </p>
             <p>
-                <button id="itb-test-api" class="button">Test API Connectivity</button>
+                <button id="itb-test-api" class="button">Test API Connectivity (Using Your IP)</button>
+                <button id="itb-whitelist-my-ip" class="button">Whitelist My IP</button>
             </p>
             <div id="itb-test-result" style="margin-top:10px;"></div>
         </div>
         <script type="text/javascript">
             jQuery(document).ready(function($) {
+                // Test API Connectivity
                 $('#itb-test-api').on('click', function(e) {
                     e.preventDefault();
                     var data = {
@@ -281,6 +283,29 @@ class Invalid_Traffic_Blocker_Plugin
                         $('#itb-test-result').html(response);
                     });
                 });
+
+                // Whitelist My IP button functionality.
+                var adminIP = '<?php echo esc_js($_SERVER['REMOTE_ADDR']); ?>';
+                $('#itb-whitelist-my-ip').on('click', function(e) {
+                    e.preventDefault();
+                    var $textarea = $('textarea[name="<?php echo esc_attr($this->option_name); ?>[whitelisted_ips]"]');
+                    var currentValue = $textarea.val();
+                    var ips = currentValue.split("\n").map(function(ip) {
+                        return ip.trim();
+                    }).filter(function(ip) {
+                        return ip.length > 0;
+                    });
+                    if (ips.indexOf(adminIP) === -1) {
+                        if (currentValue.length > 0) {
+                            $textarea.val(currentValue + "\n" + adminIP);
+                        } else {
+                            $textarea.val(adminIP);
+                        }
+                        alert("Admin IP (" + adminIP + ") added to whitelist.");
+                    } else {
+                        alert("Admin IP (" + adminIP + ") is already in the whitelist.");
+                    }
+                });
             });
         </script>
 <?php
@@ -288,17 +313,18 @@ class Invalid_Traffic_Blocker_Plugin
 
     /**
      * AJAX callback to test API connectivity.
+     * Uses the admin's current IP for the test.
      */
     public function test_api_connectivity()
     {
         check_ajax_referer('itb_test_api_nonce');
         $options = get_option($this->option_name);
         if (empty($options['api_key'])) {
-            echo "API key is not set.";
+            echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">Error: API key is not set.</div>';
             wp_die();
         }
         $api_key = $options['api_key'];
-        $test_ip = '8.8.8.8';
+        $test_ip = $_SERVER['REMOTE_ADDR'];
 
         $response = wp_remote_get("http://v2.api.iphub.info/ip/" . $test_ip, [
             'headers' => ['X-Key' => $api_key],
@@ -306,18 +332,18 @@ class Invalid_Traffic_Blocker_Plugin
         ]);
 
         if (is_wp_error($response)) {
-            echo "API Connection Error: " . $response->get_error_message();
+            echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">Error: API Connection Error: ' . esc_html($response->get_error_message()) . '</div>';
             wp_die();
         }
 
         $code = wp_remote_retrieve_response_code($response);
         if ($code !== 200) {
-            echo "API Error: HTTP Code " . $code;
+            echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">Error: API Error: HTTP Code ' . esc_html($code) . '</div>';
             wp_die();
         }
 
         $body = wp_remote_retrieve_body($response);
-        echo "API Response: " . esc_html($body);
+        echo '<div style="border: 1px solid green; padding:10px; background-color:#dff0d8; color:#3c763d;">Success: API Response: ' . esc_html($body) . '</div>';
         wp_die();
     }
 
