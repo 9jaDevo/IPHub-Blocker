@@ -9,7 +9,7 @@
  * Author URI: https://michaelakinwumi.com/
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: invalid-traffic-blocker
+ * Text Domain: IPHub-Blocker
  * Requires at least: 4.5
  * Requires PHP: 7.2
  */
@@ -56,7 +56,7 @@ class Invalid_Traffic_Blocker_Plugin
      */
     public function register_settings()
     {
-        register_setting($this->option_group, $this->option_name, [$this, 'sanitize_settings']);
+        register_setting($this->option_group, $this->option_name, [__CLASS__, 'sanitize_settings']);
 
         add_settings_section(
             'itb_main_section',
@@ -114,7 +114,7 @@ class Invalid_Traffic_Blocker_Plugin
     /**
      * Sanitize and validate settings input.
      */
-    public function sanitize_settings($input)
+    public static function sanitize_settings($input)
     {
         $new_input = array();
 
@@ -142,7 +142,7 @@ class Invalid_Traffic_Blocker_Plugin
         // Ensure only one blocking mode is active.
         $modes_active = (int)$new_input['safe_mode'] + (int)$new_input['strict_mode'] + (int)$new_input['custom_mode'];
         if ($modes_active > 1) {
-            add_settings_error($this->option_name, 'mode_error', 'Please select only one blocking mode option.', 'error');
+            add_settings_error('invalid_traffic_blocker_options', 'mode_error', 'Please select only one blocking mode option.', 'error');
             // Default to safe mode if multiple selected.
             $new_input['safe_mode']   = 1;
             $new_input['strict_mode'] = 0;
@@ -152,7 +152,7 @@ class Invalid_Traffic_Blocker_Plugin
 
         // Sanitize the whitelisted IP addresses.
         if (isset($input['whitelisted_ips'])) {
-            // Remove any extra whitespace and ensure one IP per line.
+            // Remove extra whitespace and ensure one IP per line.
             $lines = explode("\n", $input['whitelisted_ips']);
             $ips   = array();
             foreach ($lines as $line) {
@@ -251,6 +251,7 @@ class Invalid_Traffic_Blocker_Plugin
      */
     public function render_settings_page()
     {
+        $admin_ip = isset($_SERVER['REMOTE_ADDR']) ? wp_unslash($_SERVER['REMOTE_ADDR']) : '';
     ?>
         <div class="wrap">
             <h1>Invalid Traffic Blocker Settings</h1>
@@ -272,12 +273,12 @@ class Invalid_Traffic_Blocker_Plugin
         </div>
         <script type="text/javascript">
             jQuery(document).ready(function($) {
-                // Test API Connectivity
+                // Test API Connectivity.
                 $('#itb-test-api').on('click', function(e) {
                     e.preventDefault();
                     var data = {
                         action: 'itb_test_api',
-                        _ajax_nonce: '<?php echo wp_create_nonce("itb_test_api_nonce"); ?>'
+                        _ajax_nonce: '<?php echo esc_js(wp_create_nonce("itb_test_api_nonce")); ?>'
                     };
                     $.post(ajaxurl, data, function(response) {
                         $('#itb-test-result').html(response);
@@ -285,7 +286,7 @@ class Invalid_Traffic_Blocker_Plugin
                 });
 
                 // Whitelist My IP button functionality.
-                var adminIP = '<?php echo esc_js($_SERVER['REMOTE_ADDR']); ?>';
+                var adminIP = '<?php echo esc_js($admin_ip); ?>';
                 $('#itb-whitelist-my-ip').on('click', function(e) {
                     e.preventDefault();
                     var $textarea = $('textarea[name="<?php echo esc_attr($this->option_name); ?>[whitelisted_ips]"]');
@@ -324,7 +325,7 @@ class Invalid_Traffic_Blocker_Plugin
             wp_die();
         }
         $api_key = $options['api_key'];
-        $test_ip = $_SERVER['REMOTE_ADDR'];
+        $test_ip = isset($_SERVER['REMOTE_ADDR']) ? wp_unslash($_SERVER['REMOTE_ADDR']) : '0.0.0.0';
 
         $response = wp_remote_get("http://v2.api.iphub.info/ip/" . $test_ip, [
             'headers' => ['X-Key' => $api_key],
@@ -365,7 +366,7 @@ class Invalid_Traffic_Blocker_Plugin
         $api_key = $options['api_key'];
 
         // Get visitor IP address.
-        $visitor_ip = $_SERVER['REMOTE_ADDR'];
+        $visitor_ip = isset($_SERVER['REMOTE_ADDR']) ? wp_unslash($_SERVER['REMOTE_ADDR']) : '';
 
         // Check if IP is whitelisted.
         if (! empty($options['whitelisted_ips'])) {
