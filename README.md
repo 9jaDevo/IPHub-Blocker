@@ -1,9 +1,9 @@
 # Invalid Traffic Blocker
 
-**Contributors:** michaelakinwumi  
+**Contributors:** maocular  
 **Tags:** invalid traffic, blocker, ip, adsense, vpn  
 **Requires at least:** 4.5  
-**Tested up to:** 6.7.2  
+**Tested up to:** 6.7  
 **Stable tag:** 1.2  
 **License:** GPLv2 or later  
 **License URI:** [https://www.gnu.org/licenses/gpl-2.0.html](https://www.gnu.org/licenses/gpl-2.0.html)  
@@ -16,7 +16,7 @@ Protect your site from invalid traffic by blocking suspicious IPs using the IPHu
 
 ## Description
 
-Invalid Traffic Blocker is a WordPress plugin that uses the IPHub.info API to detect and block unwanted traffic such as bots, VPNs, and suspicious IP addresses. This helps AdSense publishers and website owners ensure that only valid traffic is served.
+Invalid Traffic Blocker is a WordPress plugin that uses the IPHub.info API to detect and block unwanted traffic such as bots, VPNs, and suspicious IP addresses. This helps AdSense publishers and website owners ensure that only valid traffic is served. This is not an official plugin for IPHub.info.
 
 ## Installation
 
@@ -80,3 +80,13 @@ This update includes improved API testing with admin IP detection, styled respon
 1. Admin settings page with API key, blocking mode options, and whitelist functionality.
 2. API connectivity test output showing a green info box on success.
 3. Warning message for blocked users.
+
+## External Services ##
+This plugin connects to the IPHub.info API to validate IP addresses and determine whether they are suspicious, likely belonging to bots, VPNs, or invalid traffic.
+Data transmitted:
+  • The visitor's IP address is sent to IPHub.info each time a check is performed.
+Purpose:
+  • To determine the nature of the IP (e.g., non‑residential, residential suspicious) and decide whether to block access.
+Terms and Privacy:
+  • IPHub.info Terms of Service: [https://iphub.info/legal/tos](https://iphub.info/legal/tos)
+  • IPHub.info Privacy Policy: [https://iphub.info/legal/privacy](https://iphub.info/legal/privacy)

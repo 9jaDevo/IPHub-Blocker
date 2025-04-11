@@ -3,9 +3,9 @@
 /**
  * Plugin Name: Invalid Traffic Blocker
  * Plugin URI: https://wordpress.org/plugins/invalid-traffic-blocker
- * Description: Blocks unwanted traffic using the IPHub.info API to protect AdSense publishers from invalid traffic.
+ * Description: Blocks unwanted traffic using the IPHub.info API to protect AdSense publishers from invalid traffic. This is not an official plugin for IPHub.info.
  * Short Description: Protect your site from invalid traffic by blocking suspicious IPs using the IPHub.info API.
- * Version: 1.2
+ * Version: 1.2.1
  * Author: Michael Akinwumi
  * Author URI: https://michaelakinwumi.com/
  * License: GPLv2 or later
@@ -19,49 +19,76 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-class Invalid_Traffic_Blocker_Plugin
+class INVATRBL_Plugin
 {
 
-    private $option_group = 'invalid_traffic_blocker_options';
-    private $option_name  = 'invalid_traffic_blocker_options';
+    private $option_group = 'invatrbl_options';
+    private $option_name  = 'invatrbl_options';
 
     public function __construct()
     {
-        // Load settings on admin init.
-        add_action('admin_menu', [$this, 'add_settings_page']);
-        add_action('admin_init', [$this, 'register_settings']);
+        // Load admin settings and enqueue scripts.
+        add_action('admin_menu', [$this, 'invatrbl_add_settings_page']);
+        add_action('admin_init', [$this, 'invatrbl_register_settings']);
+        add_action('admin_enqueue_scripts', [$this, 'invatrbl_admin_enqueue_scripts']);
 
-        // AJAX test for API connectivity.
-        add_action('wp_ajax_itb_test_api', [$this, 'test_api_connectivity']);
+        // AJAX callback for testing API connectivity.
+        add_action('wp_ajax_invatrbl_test_api', [$this, 'invatrbl_test_api_connectivity']);
 
-        // Frontend check to block visitors.
-        add_action('init', [$this, 'check_visitor_ip']);
+        // Frontend: Check and block invalid IPs.
+        add_action('init', [$this, 'invatrbl_check_visitor_ip']);
+    }
+
+    /**
+     * Enqueue admin JavaScript.
+     */
+    public function invatrbl_admin_enqueue_scripts($hook)
+    {
+        // Only enqueue scripts on our plugin settings page.
+        if ('settings_page_invalid_traffic_blocker' !== $hook) {
+            return;
+        }
+        wp_register_script(
+            'invatrbl-admin-js',
+            plugin_dir_url(__FILE__) . 'js/admin.js',
+            array('jquery'),
+            '1.2.1',
+            true
+        );
+        // Pass some variables to our script.
+        wp_localize_script('invatrbl-admin-js', 'invatrblVars', array(
+            'ajaxUrl'   => admin_url('admin-ajax.php'),
+            'nonce'     => wp_create_nonce('invatrbl_test_api_nonce'),
+            'adminIP'   => $this->invatrbl_get_user_ip(),
+            'optionName' => $this->option_name,
+        ));
+        wp_enqueue_script('invatrbl-admin-js');
     }
 
     /**
      * Add settings page under Settings menu.
      */
-    public function add_settings_page()
+    public function invatrbl_add_settings_page()
     {
         add_options_page(
             'Invalid Traffic Blocker Settings',
             'Invalid Traffic Blocker',
             'manage_options',
             'invalid_traffic_blocker',
-            [$this, 'render_settings_page']
+            [$this, 'invatrbl_render_settings_page']
         );
     }
 
     /**
-     * Register plugin settings using the Settings API.
+     * Register plugin settings.
      */
-    public function register_settings()
+    public function invatrbl_register_settings()
     {
-        // Use a literal callback instead of a dynamic array.
-        register_setting($this->option_group, $this->option_name, 'invalid_traffic_blocker_sanitize_settings');
+        // Use a literal callback function.
+        register_setting($this->option_group, $this->option_name, 'invatrbl_sanitize_settings');
 
         add_settings_section(
-            'itb_main_section',
+            'invatrbl_main_section',
             'Main Settings',
             null,
             'invalid_traffic_blocker'
@@ -71,52 +98,61 @@ class Invalid_Traffic_Blocker_Plugin
         add_settings_field(
             'api_key',
             'IPHub API Key',
-            [$this, 'render_api_key_field'],
+            [$this, 'invatrbl_render_api_key_field'],
             'invalid_traffic_blocker',
-            'itb_main_section'
+            'invatrbl_main_section'
         );
 
         // Enable/disable toggle.
         add_settings_field(
             'enabled',
             'Enable Invalid Traffic Blocker',
-            [$this, 'render_enabled_field'],
+            [$this, 'invatrbl_render_enabled_field'],
             'invalid_traffic_blocker',
-            'itb_main_section'
+            'invatrbl_main_section'
         );
 
         // Blocking mode checkboxes.
         add_settings_field(
             'blocking_modes',
             'Blocking Options (Select one)',
-            [$this, 'render_blocking_modes_field'],
+            [$this, 'invatrbl_render_blocking_modes_field'],
             'invalid_traffic_blocker',
-            'itb_main_section'
+            'invatrbl_main_section'
         );
 
         // Custom Mode: Select specific block types.
         add_settings_field(
             'custom_block_options',
             'Custom Block Options',
-            [$this, 'render_custom_block_options_field'],
+            [$this, 'invatrbl_render_custom_block_options_field'],
             'invalid_traffic_blocker',
-            'itb_main_section'
+            'invatrbl_main_section'
         );
 
         // Whitelisted IP addresses.
         add_settings_field(
             'whitelisted_ips',
             'Whitelist IP Addresses',
-            [$this, 'render_whitelist_field'],
+            [$this, 'invatrbl_render_whitelist_field'],
             'invalid_traffic_blocker',
-            'itb_main_section'
+            'invatrbl_main_section'
+        );
+
+        // Cache Duration.
+        add_settings_field(
+            'cache_duration',
+            'Cache Duration (Hours)',
+            [$this, 'invatrbl_render_cache_duration_field'],
+            'invalid_traffic_blocker',
+            'invatrbl_main_section'
         );
     }
 
     /**
      * Sanitize and validate settings input.
      */
-    public static function sanitize_settings($input)
+    public static function invatrbl_sanitize_settings($input)
     {
         $new_input = array();
 
@@ -128,7 +164,7 @@ class Invalid_Traffic_Blocker_Plugin
         $new_input['strict_mode'] = isset($input['strict_mode']) ? 1 : 0;
         $new_input['custom_mode'] = isset($input['custom_mode']) ? 1 : 0;
 
-        // If custom mode is active, store an array of allowed block types (1 and/or 2).
+        // For custom mode, store allowed block types.
         if (! empty($new_input['custom_mode'])) {
             $custom = array();
             if (isset($input['custom_block_options']) && is_array($input['custom_block_options'])) {
@@ -144,17 +180,15 @@ class Invalid_Traffic_Blocker_Plugin
         // Ensure only one blocking mode is active.
         $modes_active = (int)$new_input['safe_mode'] + (int)$new_input['strict_mode'] + (int)$new_input['custom_mode'];
         if ($modes_active > 1) {
-            add_settings_error('invalid_traffic_blocker_options', 'mode_error', 'Please select only one blocking mode option.', 'error');
-            // Default to safe mode if multiple selected.
+            add_settings_error('invatrbl_options', 'mode_error', 'Please select only one blocking mode option.', 'error');
             $new_input['safe_mode']   = 1;
             $new_input['strict_mode'] = 0;
             $new_input['custom_mode'] = 0;
             $new_input['custom_block_options'] = array();
         }
 
-        // Sanitize the whitelisted IP addresses.
+        // Sanitize the whitelist.
         if (isset($input['whitelisted_ips'])) {
-            // Remove extra whitespace and ensure one IP per line.
             $lines = explode("\n", $input['whitelisted_ips']);
             $ips   = array();
             foreach ($lines as $line) {
@@ -163,19 +197,24 @@ class Invalid_Traffic_Blocker_Plugin
                     $ips[] = $ip;
                 }
             }
-            // Save as a newline-separated string.
             $new_input['whitelisted_ips'] = implode("\n", $ips);
         } else {
             $new_input['whitelisted_ips'] = '';
+        }
+
+        // Cache duration (default 1 hour).
+        $new_input['cache_duration'] = isset($input['cache_duration']) ? absint($input['cache_duration']) : 1;
+        if ($new_input['cache_duration'] < 1) {
+            $new_input['cache_duration'] = 1;
         }
 
         return $new_input;
     }
 
     /**
-     * Render the API Key input field.
+     * Render the API Key field.
      */
-    public function render_api_key_field()
+    public function invatrbl_render_api_key_field()
     {
         $options = get_option($this->option_name);
 ?>
@@ -184,9 +223,9 @@ class Invalid_Traffic_Blocker_Plugin
     }
 
     /**
-     * Render the enable/disable toggle field.
+     * Render the enabled toggle.
      */
-    public function render_enabled_field()
+    public function invatrbl_render_enabled_field()
     {
         $options = get_option($this->option_name);
         $enabled = isset($options['enabled']) ? (int)$options['enabled'] : 0;
@@ -196,9 +235,9 @@ class Invalid_Traffic_Blocker_Plugin
     }
 
     /**
-     * Render the blocking mode options.
+     * Render blocking mode options.
      */
-    public function render_blocking_modes_field()
+    public function invatrbl_render_blocking_modes_field()
     {
         $options = get_option($this->option_name);
         $safe   = isset($options['safe_mode']) ? (int)$options['safe_mode'] : 0;
@@ -214,14 +253,14 @@ class Invalid_Traffic_Blocker_Plugin
         <label>
             <input type="checkbox" name="<?php echo esc_attr($this->option_name); ?>[custom_mode]" value="1" <?php checked($custom, 1); ?> /> Custom Mode (Select specific block types below)
         </label>
-        <p><em>Please select only one mode. Safe Mode is Recommended</em></p>
+        <p><em>Please select only one mode. Safe Mode is recommended.</em></p>
     <?php
     }
 
     /**
-     * Render custom block options (only applicable if custom mode is enabled).
+     * Render custom block options (for custom mode).
      */
-    public function render_custom_block_options_field()
+    public function invatrbl_render_custom_block_options_field()
     {
         $options = get_option($this->option_name);
         $custom_options = isset($options['custom_block_options']) ? (array)$options['custom_block_options'] : array();
@@ -236,9 +275,9 @@ class Invalid_Traffic_Blocker_Plugin
     }
 
     /**
-     * Render the whitelist IP addresses field.
+     * Render whitelist input field.
      */
-    public function render_whitelist_field()
+    public function invatrbl_render_whitelist_field()
     {
         $options = get_option($this->option_name);
         $whitelist = isset($options['whitelisted_ips']) ? $options['whitelisted_ips'] : '';
@@ -248,11 +287,25 @@ class Invalid_Traffic_Blocker_Plugin
     <?php
     }
 
-    // Function to Fetch Users IP
-    private function itb_get_user_ip()
+    /**
+     * Render cache duration field.
+     */
+    public function invatrbl_render_cache_duration_field()
+    {
+        $options = get_option($this->option_name);
+        $cache_duration = isset($options['cache_duration']) ? (int)$options['cache_duration'] : 1;
+    ?>
+        <input type="number" name="<?php echo esc_attr($this->option_name); ?>[cache_duration]" value="<?php echo esc_attr($cache_duration); ?>" min="1" />
+        <p class="description">Set the number of hours to cache API responses. Default is 1 hour.</p>
+    <?php
+    }
+
+    /**
+     * Retrieve the user's IP considering proxy headers.
+     */
+    private function invatrbl_get_user_ip()
     {
         if (! empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            // Get the header, unslash it, and sanitize the result.
             $x_forwarded = sanitize_text_field(wp_unslash($_SERVER['HTTP_X_FORWARDED_FOR']));
             $ips = explode(',', $x_forwarded);
             return sanitize_text_field(trim($ips[0]));
@@ -264,13 +317,12 @@ class Invalid_Traffic_Blocker_Plugin
         return '0.0.0.0';
     }
 
-
     /**
      * Render the plugin settings page.
      */
-    public function render_settings_page()
+    public function invatrbl_render_settings_page()
     {
-        $admin_ip = $this->itb_get_user_ip();
+        $admin_ip = $this->invatrbl_get_user_ip();
     ?>
         <div class="wrap">
             <h1>Invalid Traffic Blocker Settings</h1>
@@ -284,67 +336,29 @@ class Invalid_Traffic_Blocker_Plugin
             <p>
                 <a href="https://iphub.info/register" target="_blank" class="button button-secondary">Register for IPHub.info</a>
             </p>
+            <!-- Buttons will be handled by admin.js -->
             <p>
-                <button id="itb-test-api" class="button">Test API Connectivity (Using Your IP)</button>
-                <button id="itb-whitelist-my-ip" class="button">Whitelist My IP</button>
+                <button id="invatrbl-test-api" class="button">Test API Connectivity (Using Your IP)</button>
+                <button id="invatrbl-whitelist-my-ip" class="button">Whitelist My IP</button>
             </p>
-            <div id="itb-test-result" style="margin-top:10px;"></div>
+            <div id="invatrbl-test-result" style="margin-top:10px;"></div>
         </div>
-        <script type="text/javascript">
-            jQuery(document).ready(function($) {
-                // Test API Connectivity.
-                $('#itb-test-api').on('click', function(e) {
-                    e.preventDefault();
-                    var data = {
-                        action: 'itb_test_api',
-                        _ajax_nonce: '<?php echo esc_js(wp_create_nonce("itb_test_api_nonce")); ?>'
-                    };
-                    $.post(ajaxurl, data, function(response) {
-                        $('#itb-test-result').html(response);
-                    });
-                });
-
-                // Whitelist My IP button functionality.
-                var adminIP = '<?php echo esc_js($admin_ip); ?>';
-                $('#itb-whitelist-my-ip').on('click', function(e) {
-                    e.preventDefault();
-                    var $textarea = $('textarea[name="<?php echo esc_attr($this->option_name); ?>[whitelisted_ips]"]');
-                    var currentValue = $textarea.val();
-                    var ips = currentValue.split("\n").map(function(ip) {
-                        return ip.trim();
-                    }).filter(function(ip) {
-                        return ip.length > 0;
-                    });
-                    if (ips.indexOf(adminIP) === -1) {
-                        if (currentValue.length > 0) {
-                            $textarea.val(currentValue + "\n" + adminIP);
-                        } else {
-                            $textarea.val(adminIP);
-                        }
-                        alert("Admin IP (" + adminIP + ") added to whitelist.");
-                    } else {
-                        alert("Admin IP (" + adminIP + ") is already in the whitelist.");
-                    }
-                });
-            });
-        </script>
 <?php
     }
 
     /**
-     * AJAX callback to test API connectivity.
-     * Uses the admin's current IP for the test.
+     * AJAX callback: Test API connectivity using the admin's IP.
      */
-    public function test_api_connectivity()
+    public function invatrbl_test_api_connectivity()
     {
-        check_ajax_referer('itb_test_api_nonce');
+        check_ajax_referer('invatrbl_test_api_nonce');
         $options = get_option($this->option_name);
         if (empty($options['api_key'])) {
             echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">Error: API key is not set.</div>';
             wp_die();
         }
         $api_key = $options['api_key'];
-        $test_ip = $this->itb_get_user_ip();
+        $test_ip = $this->invatrbl_get_user_ip();
 
         $response = wp_remote_get("http://v2.api.iphub.info/ip/" . $test_ip, array(
             'headers' => array('X-Key' => $api_key),
@@ -368,35 +382,36 @@ class Invalid_Traffic_Blocker_Plugin
     }
 
     /**
-     * Check the visitor's IP against the IPHub API and block if necessary.
+     * Check visitor's IP against the IPHub API and block if necessary.
      */
-    public function check_visitor_ip()
+    public function invatrbl_check_visitor_ip()
     {
-        // Do not check in admin area.
+        // Do not run check in the admin area.
         if (is_admin()) {
             return;
         }
 
-        // Retrieve settings.
         $options = get_option($this->option_name);
         if (empty($options['enabled']) || empty($options['api_key'])) {
             return;
         }
         $api_key = $options['api_key'];
+        $visitor_ip = $this->invatrbl_get_user_ip();
 
-        // Get visitor IP address.
-        $visitor_ip = $this->itb_get_user_ip();
-
-        // Check if IP is whitelisted.
+        // Check whitelist.
         if (! empty($options['whitelisted_ips'])) {
             $whitelist = array_filter(array_map('trim', explode("\n", $options['whitelisted_ips'])));
             if (in_array($visitor_ip, $whitelist)) {
-                return; // Skip further checks if whitelisted.
+                return;
             }
         }
 
-        // Cache API results using transients to minimize API calls.
-        $transient_key = 'itb_check_' . md5($visitor_ip);
+        // Determine cache duration.
+        $cache_hours = isset($options['cache_duration']) ? absint($options['cache_duration']) : 1;
+        $cache_duration = $cache_hours * HOUR_IN_SECONDS;
+
+        // Use a prefixed transient key.
+        $transient_key = 'invatrbl_check_' . md5($visitor_ip);
         $ip_data = get_transient($transient_key);
 
         if (false === $ip_data) {
@@ -406,37 +421,29 @@ class Invalid_Traffic_Blocker_Plugin
             ));
 
             if (is_wp_error($response)) {
-                // If API connection fails, consider allowing access.
-                return;
+                return; // Allow access if API connection fails.
             }
 
             $code = wp_remote_retrieve_response_code($response);
             if ($code !== 200) {
-                // On non-200 responses, do not block.
                 return;
             }
 
             $body = wp_remote_retrieve_body($response);
             $ip_data = json_decode($body, true);
-
-            // Cache for one hour.
-            set_transient($transient_key, $ip_data, HOUR_IN_SECONDS);
+            set_transient($transient_key, $ip_data, $cache_duration);
         }
 
-        // Determine whether to block the visitor based on selected mode.
         $block_ip = false;
         if (! empty($options['safe_mode'])) {
-            // Safe Mode: block if block == 1.
             if (isset($ip_data['block']) && (int)$ip_data['block'] === 1) {
                 $block_ip = true;
             }
         } elseif (! empty($options['strict_mode'])) {
-            // Strict Mode: block if block == 1 or 2.
             if (isset($ip_data['block']) && in_array((int)$ip_data['block'], array(1, 2))) {
                 $block_ip = true;
             }
         } elseif (! empty($options['custom_mode'])) {
-            // Custom Mode: block if IP's block value is in admin-selected options.
             $custom_options = isset($options['custom_block_options']) ? (array)$options['custom_block_options'] : array();
             if (isset($ip_data['block']) && in_array((int)$ip_data['block'], $custom_options)) {
                 $block_ip = true;
@@ -444,7 +451,6 @@ class Invalid_Traffic_Blocker_Plugin
         }
 
         if ($block_ip) {
-            // Display a persistent, non-dismissible warning message.
             wp_die(
                 '<h1>Access Restricted</h1>
                 <p>Your access has been restricted because your IP address has been flagged as suspicious (e.g., use of VPN or invalid traffic).</p>
@@ -456,12 +462,12 @@ class Invalid_Traffic_Blocker_Plugin
     }
 }
 
-// Global function for sanitization.
-if (! function_exists('invalid_traffic_blocker_sanitize_settings')) {
-    function invalid_traffic_blocker_sanitize_settings($input)
+// Global sanitization function.
+if (! function_exists('invatrbl_sanitize_settings')) {
+    function invatrbl_sanitize_settings($input)
     {
-        return Invalid_Traffic_Blocker_Plugin::sanitize_settings($input);
+        return INVATRBL_Plugin::invatrbl_sanitize_settings($input);
     }
 }
 
-new Invalid_Traffic_Blocker_Plugin();
+new INVATRBL_Plugin();
