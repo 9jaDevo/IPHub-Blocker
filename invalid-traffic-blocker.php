@@ -472,12 +472,18 @@ class INVATRBL_Plugin
         }
 
         if ($block_ip) {
+            // Force output as HTML.
+            header('Content-Type: text/html; charset=UTF-8');
             wp_die(
                 '<h1>Access Restricted</h1>
                 <p>Your access has been restricted because your IP address has been flagged as suspicious (e.g., use of VPN or invalid traffic).</p>
                 <p>Please disable your VPN or contact your network administrator if you believe this is an error.</p>',
-                'Access Restricted',
-                array('response' => 403)
+                esc_html__('Access Restricted', 'invalid-traffic-blocker'),
+                array(
+                    'response'  => 403,
+                    'back_link' => false,
+                    'exit'      => true
+                )
             );
         }
     }
