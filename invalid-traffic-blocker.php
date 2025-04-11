@@ -351,17 +351,19 @@ class INVATRBL_Plugin
      */
     public function invatrbl_test_api_connectivity()
     {
-        // Verify nonce first.
+        // Verify nonce.
         check_ajax_referer('invatrbl_test_api_nonce');
 
-        // Now verify that the current user has permission to manage options.
+        // Verify user permissions.
         if (! current_user_can('manage_options')) {
-            wp_die(__('You are not allowed to perform this action.', 'invalid-traffic-blocker'));
+            wp_die(esc_html__('You are not allowed to perform this action.', 'invalid-traffic-blocker'));
         }
 
         $options = get_option($this->option_name);
         if (empty($options['api_key'])) {
-            echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">Error: API key is not set.</div>';
+            echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">'
+                . esc_html__('Error: API key is not set.', 'invalid-traffic-blocker')
+                . '</div>';
             wp_die();
         }
 
@@ -374,22 +376,30 @@ class INVATRBL_Plugin
         ));
 
         if (is_wp_error($response)) {
-            $error = esc_html($response->get_error_message());
-            echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">Error: API Connection Error: ' . $error . '</div>';
+            $error_message = $response->get_error_message();
+            echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">'
+                . esc_html__('Error: API Connection Error: ', 'invalid-traffic-blocker')
+                . esc_html($error_message)
+                . '</div>';
             wp_die();
         }
 
         $code = wp_remote_retrieve_response_code($response);
         if ($code !== 200) {
-            echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">Error: API Error: HTTP Code ' . esc_html($code) . '</div>';
+            echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">'
+                . esc_html__('Error: API Error: HTTP Code ', 'invalid-traffic-blocker')
+                . esc_html($code)
+                . '</div>';
             wp_die();
         }
 
         $body = wp_remote_retrieve_body($response);
-        echo '<div style="border: 1px solid green; padding:10px; background-color:#dff0d8; color:#3c763d;">Success: API Response: ' . esc_html($body) . '</div>';
+        echo '<div style="border: 1px solid green; padding:10px; background-color:#dff0d8; color:#3c763d;">'
+            . esc_html__('Success: API Response: ', 'invalid-traffic-blocker')
+            . esc_html($body)
+            . '</div>';
         wp_die();
     }
-
 
 
     /**
