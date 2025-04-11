@@ -351,7 +351,7 @@ class INVATRBL_Plugin
      */
     public function invatrbl_test_api_connectivity()
     {
-        // Check the nonce first.
+        // Verify nonce first.
         check_ajax_referer('invatrbl_test_api_nonce');
 
         // Now verify that the current user has permission to manage options.
@@ -362,13 +362,11 @@ class INVATRBL_Plugin
         $options = get_option($this->option_name);
         if (empty($options['api_key'])) {
             echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">Error: API key is not set.</div>';
-            error_log("INVATRBL: API key not set.");
             wp_die();
         }
 
         $api_key = $options['api_key'];
         $test_ip = $this->invatrbl_get_user_ip();
-        error_log("INVATRBL: Testing API connectivity with IP: " . $test_ip);
 
         $response = wp_remote_get("http://v2.api.iphub.info/ip/" . $test_ip, array(
             'headers' => array('X-Key' => $api_key),
@@ -378,22 +376,20 @@ class INVATRBL_Plugin
         if (is_wp_error($response)) {
             $error = esc_html($response->get_error_message());
             echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">Error: API Connection Error: ' . $error . '</div>';
-            error_log("INVATRBL: API Connection Error: " . $error);
             wp_die();
         }
 
         $code = wp_remote_retrieve_response_code($response);
         if ($code !== 200) {
             echo '<div style="border: 1px solid red; padding:10px; background-color:#f2dede; color:#a94442;">Error: API Error: HTTP Code ' . esc_html($code) . '</div>';
-            error_log("INVATRBL: API responded with HTTP Code: " . $code);
             wp_die();
         }
 
         $body = wp_remote_retrieve_body($response);
         echo '<div style="border: 1px solid green; padding:10px; background-color:#dff0d8; color:#3c763d;">Success: API Response: ' . esc_html($body) . '</div>';
-        error_log("INVATRBL: API Success. Response: " . $body);
         wp_die();
     }
+
 
 
     /**
